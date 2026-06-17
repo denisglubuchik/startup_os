@@ -15,3 +15,47 @@ dev = [
 [tool.pytest.ini_options]
 pythonpath = ["."]
 testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors: базовые ошибки стиля и синтаксические подозрения.
+    "W",      # pycodestyle warnings: дополнительные предупреждения по стилю.
+    "F",      # Pyflakes: неиспользуемые импорты, неопределенные имена, лишние переменные.
+    "I",      # isort: порядок и группировка импортов.
+    "N",      # pep8-naming: имена классов, функций, аргументов и переменных.
+    "B",      # flake8-bugbear: частые баги и опасные Python-паттерны.
+    "A",      # flake8-builtins: запрет затенять built-in имена вроде id, list, type.
+    "C4",     # flake8-comprehensions: упрощение list/dict/set comprehensions.
+    "DTZ",    # flake8-datetimez: timezone-aware datetime вместо наивных datetime.
+    "PIE",    # flake8-pie: мелкие практичные улучшения и анти-паттерны.
+    "PT",     # flake8-pytest-style: консистентный pytest-код.
+    "RET",    # flake8-return: лишние else/return и неясные возвраты.
+    "SIM",    # flake8-simplify: упрощение условий и ветвлений.
+    "S",      # flake8-bandit: базовые security-проверки.
+    "ARG",    # flake8-unused-arguments: неиспользуемые аргументы функций.
+    "PTH",    # flake8-use-pathlib: pathlib вместо ручной работы со строковыми путями.
+    "PERF",   # Perflint: простые performance-анти-паттерны.
+    "FLY",    # flynt: f-string вместо лишних join/format-паттернов.
+    "UP",     # pyupgrade: современный синтаксис под target-version.
+    "PLC",    # Pylint conventions: часть безопасных convention-правил Pylint.
+    "PLE",    # Pylint errors: ошибки, которые обычно указывают на реальный баг.
+    "RUF",    # Ruff-specific: собственные проверки Ruff.
+]
+ignore = [
+    "E501", # line-too-long: длину строк контролирует ruff format, иначе правило часто шумит.
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "S101", # assert разрешен в тестах, это нормальный pytest-стиль.
+    "ARG",  # pytest fixtures часто выглядят как неиспользуемые аргументы для линтера.
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"

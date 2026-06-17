@@ -3,7 +3,7 @@ name: experimentation-service
 on:
   pull_request:
     branches:
-      - main
+      - master
     paths:
       - "experimentation_service/**"
       - ".github/workflows/experimentation-service.yml"
