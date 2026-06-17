@@ -1,0 +1,23 @@
+repos:
+  - repo: local
+    hooks:
+      - id: experimentation-service-ruff-check
+        name: experimentation-service ruff check
+        entry: bash -c 'cd experimentation_service && uv run ruff check .'
+        language: system
+        pass_filenames: false
+        files: ^experimentation_service/.*\.py$
+
+      - id: experimentation-service-ruff-format
+        name: experimentation-service ruff format check
+        entry: bash -c 'cd experimentation_service && uv run ruff format --check .'
+        language: system
+        pass_filenames: false
+        files: ^experimentation_service/.*\.py$
+
+      - id: experimentation-service-pytest
+        name: experimentation-service pytest
+        entry: bash -c 'cd experimentation_service && uv run pytest'
+        language: system
+        pass_filenames: false
+        files: ^experimentation_service/(.*\.py|pyproject\.toml|uv\.lock)$

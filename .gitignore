@@ -1,0 +1,40 @@
+# OS and editor files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.uv-cache/
+build/
+dist/
+wheels/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+!uv.lock
+
+# Go
+bin/
+*.test
+coverage.out
+
+# Docker
+compose.override.yaml
+compose.override.yml
+
+# Local scratch files
+tmp/
+*.log
