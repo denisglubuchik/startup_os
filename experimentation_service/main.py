@@ -1,5 +1,10 @@
-def main():
-    print("Hello from experimentation-service!")
+import asyncio
+
+from src.api.grpc.server import serve
+
+
+def main() -> None:
+    asyncio.run(serve())
 
 
 if __name__ == "__main__":

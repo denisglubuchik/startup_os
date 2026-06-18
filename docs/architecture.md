@@ -91,7 +91,14 @@ The accepted service folders are:
 - Context: Experimentation, combining execution and experiments.
 - Responsibilities: initiatives, tasks, execution checklists, ownership, statuses, deadlines, hypotheses, experiments, evidence, experiment results, outcome interpretations, validation workflows.
 - Contracts: create initiative, create task, assign task, change status, create hypothesis, start experiment, add evidence, record result, interpret outcome, complete experiment.
-- Events: `InitiativeCreated`, `TaskCreated`, `TaskAssigned`, `TaskCompleted`, `InitiativeCompleted`, `HypothesisCreated`, `ExperimentStarted`, `EvidenceAdded`, `ExperimentResultRecorded`, `ExperimentOutcomeInterpreted`, `ExperimentCompleted`.
+- Events: `InitiativeCreated`, `TaskCreated`, `TaskAssigned`, `TaskCompleted`, `InitiativeCompleted`, `HypothesisFormulated`, `HypothesisTestingStarted`, `EvidenceRecorded`, `ExperimentResultRecorded`, `ExperimentOutcomeInterpreted`, `ExperimentCompleted`.
+- Persistence: owns its own relational database schema through SQLAlchemy async ORM and Alembic migrations.
+- Application boundary: repository and unit-of-work ports live in `src/application/interfaces`; write use cases use Unit of Work, while simple read paths may use repository ports directly.
+- First application slice: `FormulateHypothesis` exists as an application command use case and is exposed through gRPC.
+- gRPC contract: the source protobuf lives at `proto/startupos/experimentation/v1/experimentation_service.proto`; generated Python code is kept under `experimentation_service/src/api/grpc/generated`.
+- Event durability: domain events are collected through Unit of Work and written to an outbox table in the same transaction as aggregate persistence. Kafka publishing from the outbox is not implemented yet.
+- Dependency injection: configuration, session factories, repositories, Unit of Work, and use cases are wired through Dishka.
+- Configuration: runtime settings are loaded through `pydantic-settings` from environment variables and local `.env` files.
 - Note: This combines the previously separate execution and experiments hypotheses. Split later only if the domain pressure becomes real.
 
 ### knowledge_service
@@ -132,5 +139,5 @@ The accepted service folders are:
 
 ## Current Repository Notes
 
-- `experimentation_service` already exists as a minimal Python service.
+- `experimentation_service` has domain models for hypotheses, experiments, initiatives, and tasks, initial persistence scaffolding using SQLAlchemy async ORM, Alembic, Unit of Work, outbox storage, Dishka wiring, and a first gRPC vertical slice for formulating hypotheses.
 - `goals_service` exists but is not part of the accepted service map. Do not expand it unless a later cleanup or migration task explicitly addresses it.
