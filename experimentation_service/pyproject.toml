@@ -12,6 +12,7 @@ dependencies = [
     "pydantic-settings>=2.12.0",
     "protobuf>=6.33.5,<7.0.0",
     "sqlalchemy[asyncio]>=2.0.51",
+    "aiokafka>=0.14.0",
 ]
 
 [dependency-groups]

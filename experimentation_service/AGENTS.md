@@ -71,7 +71,7 @@ The first application and gRPC vertical slice exists:
 - gRPC server: `src/api/grpc/server.py`.
 - gRPC logging context interceptor: `src/api/grpc/logging.py`.
 
-Kafka publisher/consumer workers are not implemented yet.
+Kafka outbox publisher worker exists. Kafka consumers are not implemented yet.
 
 Logging notes:
 
@@ -81,7 +81,7 @@ Logging notes:
 - gRPC request metadata keys: `x-correlation-id`, `x-request-id`, `x-causation-id`, and `x-workspace-id`.
 - The gRPC logging interceptor must bind context around the returned RPC handler callable, not only around handler lookup.
 - Service methods may bind additional context, such as `workspace_id` parsed from request bodies.
-- Future Kafka publisher workers should bind log context while publishing each outbox message and propagate correlation/causation/message headers to Kafka.
+- Kafka publisher workers should bind log context while publishing each outbox message. The current outbox schema stores message/workspace context but does not yet persist request/correlation metadata from gRPC.
 
 Persistence notes:
 
@@ -89,7 +89,8 @@ Persistence notes:
 - Runtime DB settings are loaded from `PG_HOST`, `PG_PORT`, `PG_DB`, `PG_USER`, and `PG_PASS`; local defaults live in `.env`.
 - gRPC runtime settings are loaded from `GRPC_HOST` and `GRPC_PORT`.
 - Logging settings are loaded from `LOG_LEVEL` and `LOG_FORMAT`.
-- Outbox records are stored durably but not published to Kafka yet.
+- Outbox records are stored durably and can be published to Kafka by running `python outbox_worker.py`.
+- Outbox publishing retries transient failures with `attempt_count`, `next_attempt_at`, and `locked_at`. There is no DLQ yet; messages that reach `KAFKA_OUTBOX_MAX_ATTEMPTS` remain in the outbox for manual recovery.
 - Write use cases should use Unit of Work so persistence and outbox records commit atomically. Simple read-only use cases may use repository ports directly.
 - Do not import SQLAlchemy models into domain or application interfaces.
 

@@ -1,5 +1,6 @@
 from collections.abc import AsyncIterable
 
+from aiokafka import AIOKafkaProducer
 from dishka import Provider, Scope, make_async_container, provide
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -11,7 +12,8 @@ from src.application.interfaces.repositories import (
     TaskRepository,
 )
 from src.application.interfaces.unit_of_work import UnitOfWork
-from src.core.config import AppConfig, DBConfig, GrpcConfig, LoggingConfig
+from src.application.workers.outbox_publisher import OutboxPublisherWorker
+from src.core.config import AppConfig, DBConfig, GrpcConfig, KafkaConfig, LoggingConfig
 from src.infrastructure.db.mappers.experiment import ExperimentMapper
 from src.infrastructure.db.mappers.hypothesis import HypothesisMapper
 from src.infrastructure.db.mappers.initiative import InitiativeMapper
@@ -20,8 +22,10 @@ from src.infrastructure.db.mappers.task import TaskMapper
 from src.infrastructure.db.repositories.experiment import SqlAlchemyExperimentRepository
 from src.infrastructure.db.repositories.hypothesis import SqlAlchemyHypothesisRepository
 from src.infrastructure.db.repositories.initiative import SqlAlchemyInitiativeRepository
+from src.infrastructure.db.repositories.outbox import SqlAlchemyOutboxRepository
 from src.infrastructure.db.repositories.task import SqlAlchemyTaskRepository
 from src.infrastructure.db.unit_of_work import SqlAlchemyUnitOfWork
+from src.infrastructure.kafka.publisher import KafkaEventPublisher
 
 
 class ConfigProvider(Provider):
@@ -41,8 +45,12 @@ class ConfigProvider(Provider):
     def logging_config(self) -> LoggingConfig:
         return LoggingConfig()
 
+    @provide(scope=Scope.APP)
+    def kafka_config(self) -> KafkaConfig:
+        return KafkaConfig()
 
-class InfrastructureProvider(Provider):
+
+class DBProvider(Provider):
     @provide(scope=Scope.APP)
     def session_factory(
         self,
@@ -59,6 +67,8 @@ class InfrastructureProvider(Provider):
         async with session_factory() as session:
             yield session
 
+
+class InfrastructureProvider(Provider):
     hypothesis_mapper = provide(HypothesisMapper, scope=Scope.APP)
     experiment_mapper = provide(ExperimentMapper, scope=Scope.APP)
     task_mapper = provide(TaskMapper, scope=Scope.APP)
@@ -124,5 +134,37 @@ class InfrastructureProvider(Provider):
         return FormulateHypothesisUseCase(uow)
 
 
+class WorkerProvider(Provider):
+    @provide(scope=Scope.APP)
+    async def kafka_event_publisher(
+        self,
+        config: KafkaConfig,
+    ) -> AsyncIterable[KafkaEventPublisher]:
+        producer = AIOKafkaProducer(bootstrap_servers=config.KAFKA_BOOTSTRAP_SERVERS)
+        publisher = KafkaEventPublisher(producer, config.KAFKA_EXPERIMENTATION_EVENTS_TOPIC)
+        await publisher.start()
+        try:
+            yield publisher
+        finally:
+            await publisher.stop()
+
+    @provide(scope=Scope.REQUEST)
+    def outbox_repository(self, session: AsyncSession) -> SqlAlchemyOutboxRepository:
+        return SqlAlchemyOutboxRepository(session)
+
+    @provide(scope=Scope.REQUEST)
+    def outbox_publisher_worker(
+        self,
+        repository: SqlAlchemyOutboxRepository,
+        publisher: KafkaEventPublisher,
+        config: KafkaConfig,
+    ) -> OutboxPublisherWorker:
+        return OutboxPublisherWorker(repository, publisher, config)
+
+
 def create_container():
-    return make_async_container(ConfigProvider(), InfrastructureProvider())
+    return make_async_container(ConfigProvider(), DBProvider(), InfrastructureProvider())
+
+
+def create_worker_container():
+    return make_async_container(ConfigProvider(), DBProvider(), WorkerProvider())

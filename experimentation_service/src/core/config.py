@@ -48,3 +48,13 @@ class RedisConfig(Settings):
 class LoggingConfig(Settings):
     LOG_LEVEL: str = "INFO"
     LOG_FORMAT: Literal["console", "json"] = "console"
+
+
+class KafkaConfig(Settings):
+    KAFKA_BOOTSTRAP_SERVERS: str = "localhost:9092"
+    KAFKA_EXPERIMENTATION_EVENTS_TOPIC: str = "experimentation.events"
+    KAFKA_OUTBOX_BATCH_SIZE: int = 100
+    KAFKA_OUTBOX_POLL_INTERVAL_SECONDS: float = 1.0
+    KAFKA_OUTBOX_RETRY_DELAY_SECONDS: float = 10.0
+    KAFKA_OUTBOX_LOCK_TIMEOUT_SECONDS: float = 300.0
+    KAFKA_OUTBOX_MAX_ATTEMPTS: int = 10
