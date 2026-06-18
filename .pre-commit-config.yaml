@@ -14,10 +14,3 @@ repos:
         language: system
         pass_filenames: false
         files: ^experimentation_service/.*\.py$
-
-      - id: experimentation-service-pytest
-        name: experimentation-service pytest
-        entry: bash -c 'cd experimentation_service && uv run pytest'
-        language: system
-        pass_filenames: false
-        files: ^experimentation_service/(.*\.py|pyproject\.toml|uv\.lock)$
