@@ -142,6 +142,56 @@ Alternatives considered:
 - REST between all services: familiar, but easier to fragment across frameworks and DTO conventions.
 - Hand-written DTOs per language: fast initially, but likely to drift and create integration bugs.
 
+## ADR 0006: Experimentation Service Persistence And Outbox
+
+- Status: Accepted
+
+Context: `experimentation_service` now has domain aggregates for hypotheses, experiments, initiatives, and tasks. Application use cases need persistence boundaries that keep domain code independent from database details while still supporting durable domain event publication later.
+
+Decision: Use SQLAlchemy async ORM for `experimentation_service` persistence, Alembic for migrations, repository ports in the application layer, SQLAlchemy repositories in infrastructure, and a Unit of Work that saves aggregate changes and writes domain events to an outbox table in the same transaction. Use Dishka for dependency injection of infrastructure dependencies such as session factories, mappers, repositories, and Unit of Work.
+
+Consequences:
+
+- Domain models remain free of SQLAlchemy, Alembic, Dishka, and transport concerns.
+- Application use cases depend on repository and Unit of Work interfaces, not concrete database adapters.
+- Outbox records make domain event publication durable once a Kafka publisher worker is added.
+- Kafka publishing is not implemented yet; outbox storage is the first step.
+- Repository and mapper code must stay explicit and split by aggregate rather than using one generic JSON blob mapper.
+- Persistence schema is owned by `experimentation_service`; other services must not read it directly.
+
+Alternatives considered:
+
+- Direct SQLAlchemy use from application use cases: faster initially, but leaks infrastructure into orchestration code.
+- JSON blob aggregate tables: quick to scaffold, but weak for relational integrity, migrations, and query/debug ergonomics.
+- Publish Kafka events directly inside use cases: simpler code path, but can lose events if database commit and publish are not atomic.
+- Event sourcing: rejected as too much complexity for the current stage.
+
+## ADR 0007: Experimentation Service gRPC Slice And Runtime Wiring
+
+- Status: Accepted
+
+Context: `experimentation_service` needs its first synchronous internal API while preserving the domain/application/infrastructure boundaries already accepted for persistence. The service also needs a practical local runtime configuration and an end-to-end verification path.
+
+Decision: Expose the first vertical slice, `FormulateHypothesis`, through gRPC. Keep protobuf contracts in the repository-level `proto/` tree, with `proto/startupos/experimentation/v1/experimentation_service.proto` as the source of truth. Generate Python gRPC code inside `experimentation_service/src/api/grpc/generated`. Keep gRPC adapters thin: protobuf request/response mapping happens in `src/api/grpc`, while business behavior stays in application use cases and domain aggregates. Use Dishka to wire runtime configuration, DB session factories, repositories, Unit of Work, and use cases. Use `pydantic-settings` for `.env`/environment-backed runtime configuration. Add a Testcontainers-based e2e test that starts Postgres, runs Alembic migrations, starts the gRPC server in process, calls the generated gRPC client, and verifies both aggregate persistence and outbox storage.
+
+Consequences:
+
+- Protobuf remains the internal service contract, not an application-layer DTO.
+- The application layer remains transport-independent.
+- Generated Python protobuf code is checked into the service-local generated folder and excluded from Ruff checks.
+- Write use cases continue to use Unit of Work so aggregate persistence and outbox records are committed atomically.
+- E2E tests require Docker access and are marked with `e2e`.
+- Redis configuration is not wired yet.
+- Logging is configured in `src/core` and uses `contextvars` for request-scoped observability fields. The gRPC server interceptor binds `x-correlation-id`, `x-request-id`, `x-causation-id`, `x-workspace-id`, and the gRPC method around the actual RPC handler execution.
+- Kafka publishing from the outbox is still not implemented.
+
+Alternatives considered:
+
+- Put protobuf files inside `experimentation_service`: rejected because protobuf contracts are shared service contracts needed by clients such as `api_gateway`.
+- Use application DTOs as gRPC DTOs directly: rejected because it would couple application code to transport details.
+- Start with HTTP instead of gRPC: rejected because internal synchronous calls are standardized on gRPC.
+- Add Kafka publishing immediately: deferred until more write use cases and event consumption needs exist.
+
 ## Plan 0001: Initial Repository Setup
 
 This is a plan, not implementation.
