@@ -40,6 +40,8 @@ Python.
 - `src/application/interfaces/`: repository and unit-of-work ports used by application use cases.
 - `src/api/grpc/`: gRPC server, service adapters, transport error mapping, and generated protobuf code.
 - `src/core/config.py`: pydantic-settings runtime configuration loaded from environment variables and `.env`.
+- `src/core/logging.py`: logging setup for console or JSON logs.
+- `src/core/logging_context.py`: request-scoped observability context based on `contextvars`.
 - `src/infrastructure/db/models/`: SQLAlchemy ORM models, split by aggregate.
 - `src/infrastructure/db/mappers/`: explicit ORM/domain mappers.
 - `src/infrastructure/db/repositories/`: SQLAlchemy repository implementations, split by aggregate.
@@ -67,14 +69,26 @@ The first application and gRPC vertical slice exists:
 - Generated Python gRPC code: `src/api/grpc/generated/experimentation/v1/`.
 - gRPC adapter: `src/api/grpc/experimentation_service.py`.
 - gRPC server: `src/api/grpc/server.py`.
+- gRPC logging context interceptor: `src/api/grpc/logging.py`.
 
 Kafka publisher/consumer workers are not implemented yet.
+
+Logging notes:
+
+- Logging is configured at process startup from `LOG_LEVEL` and `LOG_FORMAT`.
+- Supported log formats are `console` and `json`.
+- Request context is stored in `contextvars`, not globals or request DTOs.
+- gRPC request metadata keys: `x-correlation-id`, `x-request-id`, `x-causation-id`, and `x-workspace-id`.
+- The gRPC logging interceptor must bind context around the returned RPC handler callable, not only around handler lookup.
+- Service methods may bind additional context, such as `workspace_id` parsed from request bodies.
+- Future Kafka publisher workers should bind log context while publishing each outbox message and propagate correlation/causation/message headers to Kafka.
 
 Persistence notes:
 
 - The database URL is read from `DATABASE_URL` by Alembic, with a local default in `alembic.ini`.
 - Runtime DB settings are loaded from `PG_HOST`, `PG_PORT`, `PG_DB`, `PG_USER`, and `PG_PASS`; local defaults live in `.env`.
 - gRPC runtime settings are loaded from `GRPC_HOST` and `GRPC_PORT`.
+- Logging settings are loaded from `LOG_LEVEL` and `LOG_FORMAT`.
 - Outbox records are stored durably but not published to Kafka yet.
 - Write use cases should use Unit of Work so persistence and outbox records commit atomically. Simple read-only use cases may use repository ports directly.
 - Do not import SQLAlchemy models into domain or application interfaces.

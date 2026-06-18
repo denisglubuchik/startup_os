@@ -181,7 +181,8 @@ Consequences:
 - Generated Python protobuf code is checked into the service-local generated folder and excluded from Ruff checks.
 - Write use cases continue to use Unit of Work so aggregate persistence and outbox records are committed atomically.
 - E2E tests require Docker access and are marked with `e2e`.
-- Redis and logging configuration are not wired yet.
+- Redis configuration is not wired yet.
+- Logging is configured in `src/core` and uses `contextvars` for request-scoped observability fields. The gRPC server interceptor binds `x-correlation-id`, `x-request-id`, `x-causation-id`, `x-workspace-id`, and the gRPC method around the actual RPC handler execution.
 - Kafka publishing from the outbox is still not implemented.
 
 Alternatives considered:

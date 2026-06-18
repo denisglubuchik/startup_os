@@ -1,3 +1,5 @@
+import logging
+
 import grpc
 from dishka import AsyncContainer
 
@@ -5,12 +7,15 @@ from src.api.grpc.experimentation_service import (
     ExperimentationGrpcService,
     experimentation_service_pb2_grpc,
 )
+from src.api.grpc.logging import LoggingContextInterceptor
 from src.core.config import GrpcConfig
 from src.infrastructure.di import create_container
 
+logger = logging.getLogger("experimentation_service.grpc.server")
+
 
 def create_grpc_server(container: AsyncContainer) -> grpc.aio.Server:
-    server = grpc.aio.server()
+    server = grpc.aio.server(interceptors=[LoggingContextInterceptor()])
     experimentation_service_pb2_grpc.add_ExperimentationServiceServicer_to_server(
         ExperimentationGrpcService(container),
         server,
@@ -30,9 +35,10 @@ async def serve(address: str | None = None) -> None:
     server.add_insecure_port(listen_address)
 
     await server.start()
-    print(f"experimentation_service gRPC server listening on {listen_address}")
+    logger.info("gRPC server listening on %s", listen_address)
 
     try:
         await server.wait_for_termination()
     finally:
+        await server.stop(grace=5)
         await container.close()

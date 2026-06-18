@@ -11,6 +11,7 @@ from src.application.commands.hypothesis import (
     FormulateHypothesisUseCase,
 )
 from src.application.errors import ApplicationError
+from src.core.logging_context import bind_log_context
 from src.domain.shared.errors import DomainError
 
 _GENERATED_PATH = Path(__file__).parent / "generated"
@@ -42,9 +43,10 @@ class ExperimentationGrpcService(experimentation_service_pb2_grpc.Experimentatio
             raise
 
         try:
-            async with self._container(scope=Scope.REQUEST) as request_container:
-                formulate_hypothesis = await request_container.get(FormulateHypothesisUseCase)
-                result = await formulate_hypothesis.execute(command)
+            with bind_log_context(workspace_id=str(command.workspace_id)):
+                async with self._container(scope=Scope.REQUEST) as request_container:
+                    formulate_hypothesis = await request_container.get(FormulateHypothesisUseCase)
+                    result = await formulate_hypothesis.execute(command)
         except (ApplicationError, DomainError) as exc:
             await abort_application_error(context.abort, exc)
             raise

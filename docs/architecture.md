@@ -99,6 +99,7 @@ The accepted service folders are:
 - Event durability: domain events are collected through Unit of Work and written to an outbox table in the same transaction as aggregate persistence. Kafka publishing from the outbox is not implemented yet.
 - Dependency injection: configuration, session factories, repositories, Unit of Work, and use cases are wired through Dishka.
 - Configuration: runtime settings are loaded through `pydantic-settings` from environment variables and local `.env` files.
+- Logging: configured in `experimentation_service/src/core/logging.py` from `LOG_LEVEL` and `LOG_FORMAT`. gRPC requests bind `contextvars` through a server interceptor, using `x-correlation-id`, `x-request-id`, `x-causation-id`, and `x-workspace-id` metadata when present. Logs include correlation/request/workspace/method fields in console or JSON output so later observability wiring can connect traces across microservices.
 - Note: This combines the previously separate execution and experiments hypotheses. Split later only if the domain pressure becomes real.
 
 ### knowledge_service

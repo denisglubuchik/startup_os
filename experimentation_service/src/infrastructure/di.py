@@ -11,7 +11,7 @@ from src.application.interfaces.repositories import (
     TaskRepository,
 )
 from src.application.interfaces.unit_of_work import UnitOfWork
-from src.core.config import AppConfig, DBConfig, GrpcConfig
+from src.core.config import AppConfig, DBConfig, GrpcConfig, LoggingConfig
 from src.infrastructure.db.mappers.experiment import ExperimentMapper
 from src.infrastructure.db.mappers.hypothesis import HypothesisMapper
 from src.infrastructure.db.mappers.initiative import InitiativeMapper
@@ -36,6 +36,10 @@ class ConfigProvider(Provider):
     @provide(scope=Scope.APP)
     def grpc_config(self) -> GrpcConfig:
         return GrpcConfig()
+
+    @provide(scope=Scope.APP)
+    def logging_config(self) -> LoggingConfig:
+        return LoggingConfig()
 
 
 class InfrastructureProvider(Provider):
