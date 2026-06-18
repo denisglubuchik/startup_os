@@ -26,12 +26,25 @@ Prefer this structure inside a service:
 
 - Frontend clients call `api_gateway`.
 - `api_gateway` calls internal services through gRPC and aggregates responses when needed.
+- Protobuf is the source of truth for internal gRPC contracts.
+- Protobuf schemas should also define Kafka event payloads where practical.
+- Generated clients/types should be used in Go and Python services instead of hand-written contract shapes.
+- HTTP framework choices are local to `api_gateway`; internal services should not expose ad hoc HTTP styles to each other.
 - Source-of-truth services publish domain events to Kafka after durable state changes.
 - Kafka events describe facts that already happened.
 - Event consumers must be idempotent.
 - `dashboard_service` and `notification_service` are the first natural Kafka consumers.
 - Do not use Kafka for user-facing request flows that require an immediate answer.
 - Do not use direct database access across service boundaries.
+
+## Language Choices
+
+The current language split is provisional and can change through a later docs update.
+
+- Go: `api_gateway`, `workspace_service`, `strategy_goals_service`, `dashboard_service`
+- Python: `experimentation_service`, `knowledge_service`, `notification_service`
+
+Use Go for services where strict contracts, predictable runtime behavior, gateway concerns, or read-heavy projections are the main pressure. Use Python where iteration speed, integrations, text-heavy workflows, or experimentation workflows are the main pressure.
 
 ## Service Map
 
@@ -47,6 +60,7 @@ The accepted service folders are:
 
 ### api_gateway
 
+- Language: Go
 - Role: Public API gateway and BFF.
 - Responsibilities: route frontend requests, call internal services over gRPC, aggregate frontend-shaped responses, handle API-level auth/session concerns, normalize errors.
 - Owns: client-facing API contracts and composition logic.
@@ -55,6 +69,7 @@ The accepted service folders are:
 
 ### workspace_service
 
+- Language: Go
 - Context: Identity & Workspace
 - Responsibilities: users, workspaces, memberships, invitations, roles, permissions, tenant isolation.
 - Contracts: create workspace, invite member, accept invitation, list members, check access.
@@ -63,6 +78,7 @@ The accepted service folders are:
 
 ### strategy_goals_service
 
+- Language: Go
 - Context: Strategy, Goals & Metrics
 - Responsibilities: strategy, goals, measurable outcomes, metrics, progress tracking.
 - Contracts: create goal, update goal, define metric, link metric to goal, update progress.
@@ -71,35 +87,40 @@ The accepted service folders are:
 
 ### experimentation_service
 
+- Language: Python
 - Context: Experimentation, combining execution and experiments.
-- Responsibilities: initiatives, tasks, ownership, statuses, deadlines, hypotheses, experiments, results, learnings, validation workflows.
-- Contracts: create initiative, create task, assign task, change status, create hypothesis, start experiment, record result, complete experiment, capture learning.
-- Events: `InitiativeCreated`, `TaskCreated`, `TaskAssigned`, `TaskCompleted`, `InitiativeCompleted`, `HypothesisCreated`, `ExperimentStarted`, `ExperimentCompleted`, `LearningCaptured`.
+- Responsibilities: initiatives, tasks, execution checklists, ownership, statuses, deadlines, hypotheses, experiments, evidence, experiment results, outcome interpretations, validation workflows.
+- Contracts: create initiative, create task, assign task, change status, create hypothesis, start experiment, add evidence, record result, interpret outcome, complete experiment.
+- Events: `InitiativeCreated`, `TaskCreated`, `TaskAssigned`, `TaskCompleted`, `InitiativeCompleted`, `HypothesisCreated`, `ExperimentStarted`, `EvidenceAdded`, `ExperimentResultRecorded`, `ExperimentOutcomeInterpreted`, `ExperimentCompleted`.
 - Note: This combines the previously separate execution and experiments hypotheses. Split later only if the domain pressure becomes real.
 
 ### knowledge_service
 
-- Context: Documents / Knowledge
-- Responsibilities: documents, notes, decisions, knowledge organization, links to other domain objects.
-- Contracts: create document, update document, link document, record decision, list knowledge.
-- Events: `DocumentCreated`, `DocumentUpdated`, `DocumentLinked`, `DecisionRecorded`.
-- Note: Search and rich knowledge graph features should wait.
+- Language: Python
+- Context: Knowledge & Decisions
+- Primary responsibilities: decisions, decision rationale, insights, learning notes, knowledge links.
+- Secondary responsibilities: documents, notes, collections.
+- Contracts: record decision, record insight, create learning note, link knowledge, create/update supporting document, list knowledge.
+- Events: `DecisionRecorded`, `InsightRecorded`, `LearningNoteCreated`, `KnowledgeLinked`, `DocumentCreated`, `DocumentUpdated`.
+- Note: Do not turn this into a generic document service. Documents support the core model of decisions, insights, and learning.
 
 ### dashboard_service
 
+- Language: Go
 - Context: Dashboard read models.
 - Responsibilities: read-optimized projections and cross-service operating views.
 - Contracts: get workspace dashboard, get goal dashboard, get execution dashboard, get experiment dashboard.
-- Event inputs: workspace, goal, task, experiment, and document events from Kafka.
+- Event inputs: workspace, goal, task, experiment, evidence, decision, insight, and document events from Kafka.
 - Note: This is CQRS-like, but only for dashboard reads. Source-of-truth writes stay in owning services.
 
 ### notification_service
 
-- Context: Notifications / Integrations
+- Language: Python
+- Role: Supporting technical capability for notifications and integrations.
 - Responsibilities: notification preferences, delivery, external integrations, side effects.
 - Contracts: update preferences, connect integration, disconnect integration, send or queue notification.
 - Events: `NotificationPreferenceUpdated`, `NotificationQueued`, `NotificationDelivered`, `IntegrationConnected`.
-- Note: This service may be delayed until other services produce events worth reacting to.
+- Note: This is not a core bounded context and must not own core business state from other services. It may be delayed until other services produce events worth reacting to.
 
 ## Development Approach
 

@@ -2,6 +2,10 @@
 
 Owns startup strategy, goals, metrics, and progress tracking.
 
+## Language
+
+Go.
+
 ## Responsibility
 
 - Strategy and strategic directions.
@@ -20,6 +24,7 @@ Owns startup strategy, goals, metrics, and progress tracking.
 ## Communication
 
 - gRPC: create/update goals, define metrics, link metrics to goals, update progress, query goal state.
+- Contract source of truth: protobuf-generated services/types.
 - Kafka events: `GoalCreated`, `GoalUpdated`, `MetricCreated`, `MetricLinkedToGoal`, `GoalProgressUpdated`.
 
 ## Current State

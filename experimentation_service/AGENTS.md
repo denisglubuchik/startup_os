@@ -2,27 +2,36 @@
 
 Owns execution work and validation workflows.
 
+## Language
+
+Python.
+
 ## Responsibility
 
 - Initiatives.
 - Tasks.
+- Execution checklists.
 - Assignees, statuses, deadlines, and work planning.
 - Hypotheses.
 - Experiments.
-- Results and learnings.
+- Evidence.
+- Experiment results.
+- Outcome interpretation.
 - Validation workflow.
 
 ## Boundaries
 
 - Combines the earlier execution and experiments context hypotheses.
-- Owns source-of-truth state for tasks, initiatives, hypotheses, experiments, results, and learnings.
-- Does not own goals, metrics, documents, or workspace membership.
+- Owns source-of-truth state for tasks, initiatives, hypotheses, experiments, evidence, experiment results, and outcome interpretation.
+- Does not own goals, metrics, decisions, insights, learning notes, documents, or workspace membership.
+- Decisions, insights, and learning notes belong in `knowledge_service`.
 - Split execution and experiments only if the domain pressure becomes real.
 
 ## Communication
 
-- gRPC: create/update tasks, create initiatives, assign work, create hypotheses, start/complete experiments, record results, capture learnings.
-- Kafka events: `InitiativeCreated`, `TaskCreated`, `TaskAssigned`, `TaskCompleted`, `InitiativeCompleted`, `HypothesisCreated`, `ExperimentStarted`, `ExperimentCompleted`, `LearningCaptured`.
+- gRPC: create/update tasks, create initiatives, assign work, create hypotheses, start/complete experiments, add evidence, record results, interpret outcomes.
+- Contract source of truth: protobuf-generated services/types.
+- Kafka events: `InitiativeCreated`, `TaskCreated`, `TaskAssigned`, `TaskCompleted`, `InitiativeCompleted`, `HypothesisCreated`, `ExperimentStarted`, `EvidenceAdded`, `ExperimentResultRecorded`, `ExperimentOutcomeInterpreted`, `ExperimentCompleted`.
 
 ## Current State
 

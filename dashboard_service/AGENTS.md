@@ -2,6 +2,10 @@
 
 Owns read-optimized dashboard projections.
 
+## Language
+
+Go.
+
 ## Responsibility
 
 - Dashboard query models.
@@ -20,6 +24,7 @@ Owns read-optimized dashboard projections.
 ## Communication
 
 - gRPC: dashboard queries from `api_gateway`.
+- Contract source of truth: protobuf-generated services/types.
 - Kafka consumers: workspace, goal, metric, task, experiment, and document events.
 - gRPC fallbacks to source services are acceptable for explicit query needs, but stored projections should come from event streams where practical.
 

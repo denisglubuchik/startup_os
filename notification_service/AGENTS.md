@@ -1,6 +1,10 @@
 # notification_service
 
-Owns notifications, preferences, delivery, and later integrations.
+Supporting technical capability for notifications, preferences, delivery, and later integrations.
+
+## Language
+
+Python.
 
 ## Responsibility
 
@@ -12,6 +16,7 @@ Owns notifications, preferences, delivery, and later integrations.
 
 ## Boundaries
 
+- This is not a core bounded context.
 - Reacts to domain events from other services.
 - Does not own core business state from other services.
 - Must not directly access other service databases.
@@ -20,6 +25,7 @@ Owns notifications, preferences, delivery, and later integrations.
 ## Communication
 
 - gRPC: update preferences, query notification state, manage integrations when introduced.
+- Contract source of truth: protobuf-generated services/types.
 - Kafka consumers: events that should trigger notifications.
 - Kafka events: `NotificationPreferenceUpdated`, `NotificationQueued`, `NotificationDelivered`, `IntegrationConnected`, `IntegrationDisconnected`.
 

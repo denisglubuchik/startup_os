@@ -2,6 +2,10 @@
 
 Owns identity, workspace membership, permissions, and tenant isolation.
 
+## Language
+
+Go.
+
 ## Responsibility
 
 - Users and workspace references.
@@ -21,6 +25,7 @@ Owns identity, workspace membership, permissions, and tenant isolation.
 ## Communication
 
 - gRPC: workspace creation, membership lookup, invitation flows, role/permission checks.
+- Contract source of truth: protobuf-generated services/types.
 - Kafka events: `WorkspaceCreated`, `MemberInvited`, `MemberJoinedWorkspace`, `RoleAssigned`, `MemberRemoved`.
 
 ## Current State

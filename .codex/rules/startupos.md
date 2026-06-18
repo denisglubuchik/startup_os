@@ -31,6 +31,8 @@ For large tasks, implement a narrow vertical slice first.
 - Cross-service communication should use explicit APIs or integration events.
 - Use gRPC for synchronous internal commands and queries.
 - Use Kafka for asynchronous domain events and side effects.
+- Use protobuf as the source of truth for internal gRPC contracts and Kafka event schemas.
+- Keep HTTP framework choices at the edge in `api_gateway`; do not expose random HTTP styles between services.
 - Do not silently turn the project into a monolith.
 - Do not create a new service for every small feature.
 - Do not introduce RabbitMQ, broad CQRS, event sourcing, or distributed transactions unless explicitly requested or accepted in a decision.
@@ -64,6 +66,13 @@ The accepted service folders are:
 
 Read the local service `AGENTS.md` before editing a service folder.
 
+Current language choices:
+
+- Go: `api_gateway`, `workspace_service`, `strategy_goals_service`, `dashboard_service`
+- Python: `experimentation_service`, `knowledge_service`, `notification_service`
+
+These choices can change later through an explicit docs update.
+
 ## DDD
 
 - Use DDD where it improves clarity; do not add ceremony for trivial CRUD.
@@ -81,13 +90,18 @@ Good event names:
 - `MetricLinkedToGoal`
 - `InitiativeCompleted`
 - `ExperimentCompleted`
-- `DocumentLinked`
+- `ExperimentResultRecorded`
+- `DecisionRecorded`
+- `InsightRecorded`
+- `KnowledgeLinked`
 
 Bad event names:
 
 - `CreateWorkspaceRequested`
 - `UpdateGoalEvent`
 - `ProcessData`
+
+Avoid using `Learning` as a vague ownership term. Experimentation owns experiment evidence, results, and outcome interpretation. Knowledge owns decisions, insights, learning notes, and knowledge links.
 
 ## Testing
 

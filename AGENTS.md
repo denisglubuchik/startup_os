@@ -1,6 +1,6 @@
 # StartupOS Codex Guide
 
-StartupOS is a SaaS platform for startup management. It is intended to connect startup strategy, goals, metrics, initiatives, tasks, experiments, documents, knowledge, workflows, notifications, and integrations.
+StartupOS is a SaaS platform for startup management. It is intended to connect startup strategy, goals, metrics, initiatives, tasks, experiments, evidence, decisions, knowledge, workflows, notifications, and integrations.
 
 This repository is developed with Codex. Codex must read this file first at the start of a task, then route into the relevant project docs and rules below.
 

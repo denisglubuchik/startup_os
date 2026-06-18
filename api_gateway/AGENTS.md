@@ -2,6 +2,10 @@
 
 Public API gateway and BFF for StartupOS.
 
+## Language
+
+Go.
+
 ## Responsibility
 
 - Exposes client-facing APIs.
@@ -20,6 +24,7 @@ Public API gateway and BFF for StartupOS.
 
 - Inbound: frontend/client HTTP API.
 - Outbound: gRPC to internal services.
+- Contract source of truth: protobuf-generated clients/types.
 - Kafka: only if gateway-level async needs appear later; not expected initially.
 
 ## Current State
