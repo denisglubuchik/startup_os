@@ -31,11 +31,68 @@ Python.
 
 - gRPC: create/update tasks, create initiatives, assign work, create hypotheses, start/complete experiments, add evidence, record results, interpret outcomes.
 - Contract source of truth: protobuf-generated services/types.
-- Kafka events: `InitiativeCreated`, `TaskCreated`, `TaskAssigned`, `TaskCompleted`, `InitiativeCompleted`, `HypothesisCreated`, `ExperimentStarted`, `EvidenceAdded`, `ExperimentResultRecorded`, `ExperimentOutcomeInterpreted`, `ExperimentCompleted`.
+- Kafka events: `InitiativeCreated`, `TaskCreated`, `TaskAssigned`, `TaskCompleted`, `InitiativeCompleted`, `HypothesisFormulated`, `HypothesisTestingStarted`, `EvidenceRecorded`, `ExperimentResultRecorded`, `ExperimentOutcomeInterpreted`, `ExperimentCompleted`.
+
+## Internal Structure
+
+- `src/domain/`: domain aggregates, entities, value objects, domain events, errors, and time rules.
+- `src/application/commands/`: application command DTOs and use cases.
+- `src/application/interfaces/`: repository and unit-of-work ports used by application use cases.
+- `src/api/grpc/`: gRPC server, service adapters, transport error mapping, and generated protobuf code.
+- `src/core/config.py`: pydantic-settings runtime configuration loaded from environment variables and `.env`.
+- `src/core/logging.py`: logging setup for console or JSON logs.
+- `src/core/logging_context.py`: request-scoped observability context based on `contextvars`.
+- `src/infrastructure/db/models/`: SQLAlchemy ORM models, split by aggregate.
+- `src/infrastructure/db/mappers/`: explicit ORM/domain mappers.
+- `src/infrastructure/db/repositories/`: SQLAlchemy repository implementations, split by aggregate.
+- `src/infrastructure/db/migrations/`: Alembic migrations.
+- `src/infrastructure/di.py`: Dishka provider wiring for config, DB session, mappers, repositories, Unit of Work, and use cases.
+- `tests/support/`: shared application-test fakes and fixtures.
 
 ## Current State
 
-Minimal Python/uv service exists. It currently has a simple `main.py`, tests, Ruff config, and no real domain implementation yet.
+Python/uv service has domain models and tests for hypotheses, experiments, initiatives, and tasks.
+
+Persistence scaffolding exists:
+
+- SQLAlchemy async ORM models.
+- Repository interfaces in the application layer.
+- SQLAlchemy repository implementations in infrastructure.
+- Unit of Work implementation that writes domain events to an outbox table before commit.
+- Alembic migration setup under `src/infrastructure/db/migrations`.
+- Dishka dependency injection setup for configuration, infrastructure dependencies, and the first use case.
+
+The first application and gRPC vertical slice exists:
+
+- `FormulateHypothesisUseCase` in `src/application/commands/hypothesis.py`.
+- Protobuf source: `../proto/startupos/experimentation/v1/experimentation_service.proto`.
+- Generated Python gRPC code: `src/api/grpc/generated/experimentation/v1/`.
+- gRPC adapter: `src/api/grpc/experimentation_service.py`.
+- gRPC server: `src/api/grpc/server.py`.
+- gRPC logging context interceptor: `src/api/grpc/logging.py`.
+
+Kafka outbox publisher worker exists. Kafka consumers are not implemented yet.
+
+Logging notes:
+
+- Logging is configured at process startup from `LOG_LEVEL` and `LOG_FORMAT`.
+- Supported log formats are `console` and `json`.
+- Request context is stored in `contextvars`, not globals or request DTOs.
+- gRPC request metadata keys: `x-correlation-id`, `x-request-id`, `x-causation-id`, and `x-workspace-id`.
+- The gRPC logging interceptor must bind context around the returned RPC handler callable, not only around handler lookup.
+- Service methods may bind additional context, such as `workspace_id` parsed from request bodies.
+- Kafka publisher workers should bind log context while publishing each outbox message. The current outbox schema stores message/workspace context but does not yet persist request/correlation metadata from gRPC.
+
+Persistence notes:
+
+- The database URL is read from `DATABASE_URL` by Alembic, with a local default in `alembic.ini`.
+- Runtime DB settings are loaded from `PG_HOST`, `PG_PORT`, `PG_DB`, `PG_USER`, and `PG_PASS`; local defaults live in `.env`.
+- gRPC runtime settings are loaded from `GRPC_HOST` and `GRPC_PORT`.
+- Logging settings are loaded from `LOG_LEVEL` and `LOG_FORMAT`.
+- Outbox records are stored durably and can be published to Kafka by running `python outbox_worker.py`.
+- Outbox publishing retries transient failures with `attempt_count`, `next_attempt_at`, and `locked_at`. There is no DLQ yet; messages that reach `KAFKA_OUTBOX_MAX_ATTEMPTS` remain in the outbox for manual recovery.
+- Write use cases should use Unit of Work so persistence and outbox records commit atomically. Simple read-only use cases may use repository ports directly.
+- Do not import SQLAlchemy models into domain or application interfaces.
 
 ## Launch
 
@@ -43,6 +100,14 @@ From this directory:
 
 ```bash
 uv run python main.py
+```
+
+This starts the gRPC server. Local defaults are read from `.env`.
+
+Docker Compose starts the service and Postgres:
+
+```bash
+docker compose up --build
 ```
 
 ## Tests
@@ -53,6 +118,19 @@ From this directory:
 uv run pytest
 ```
 
+Tests use `pytest-asyncio`.
+
+E2E tests require Docker/Testcontainers:
+
+```bash
+uv run pytest tests/e2e -m e2e -vv
+```
+
+CI policy:
+
+- Pull requests run lint, format check, and `uv run pytest -m "not e2e"`.
+- Pushes to `master` run the same checks plus the Testcontainers e2e job.
+
 ## Lint And Format
 
 From this directory:
@@ -61,3 +139,14 @@ From this directory:
 uv run ruff check .
 uv run ruff format .
 ```
+
+## Migrations
+
+From this directory:
+
+```bash
+uv run alembic revision --autogenerate -m "message"
+uv run alembic upgrade head
+```
+
+Run migrations with a valid `DATABASE_URL` when not using the local default.

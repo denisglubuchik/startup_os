@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package startupos.experimentation.v1;
+
+service ExperimentationService {
+  rpc FormulateHypothesis(FormulateHypothesisRequest) returns (HypothesisResponse);
+}
+
+message FormulateHypothesisRequest {
+  string workspace_id = 1;
+  string statement = 2;
+  optional string expected_outcome = 3;
+  string created_by = 4;
+  string confidence = 5;
+  string priority = 6;
+}
+
+message HypothesisResponse {
+  string hypothesis_id = 1;
+  string workspace_id = 2;
+  string status = 3;
+}
